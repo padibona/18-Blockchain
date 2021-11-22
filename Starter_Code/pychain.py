@@ -21,21 +21,19 @@
 # Step 4: Test the PyChain Ledger by Storing Records
 # * Test your complete `PyChain` ledger.
 
+import datetime as datetime
+import hashlib
+from dataclasses import dataclass
+from typing import List
+
+import pandas as pd
 ################################################################################
 # Imports
 import streamlit as st
-from dataclasses import dataclass
-from typing import Any, List
-import datetime as datetime
-import pandas as pd
-import hashlib
+
 
 ################################################################################
 # Step 1:
-# @TODO
-# Create a Record Data Class that consists of the `sender`, `receiver`, and
-# `amount` attributes
-
 # Creating the Record data class
 @dataclass
 class Record:
@@ -57,10 +55,9 @@ class Record:
 
 @dataclass
 class Block:
-
     # @TODO
     # Rename the `data` attribute to `record`, and set the data type to `Record`
-    data: Any
+    record: Record
 
     creator_id: int
     prev_hash: str = 0
@@ -69,22 +66,16 @@ class Block:
 
     def hash_block(self):
         sha = hashlib.sha256()
-
         record = str(self.record).encode()
         sha.update(record)
-
         creator_id = str(self.creator_id).encode()
         sha.update(creator_id)
-
         timestamp = str(self.timestamp).encode()
         sha.update(timestamp)
-
         prev_hash = str(self.prev_hash).encode()
         sha.update(prev_hash)
-
         nonce = str(self.nonce).encode()
         sha.update(nonce)
-
         return sha.hexdigest()
 
 
@@ -94,18 +85,12 @@ class PyChain:
     difficulty: int = 4
 
     def proof_of_work(self, block):
-
         calculated_hash = block.hash_block()
-
         num_of_zeros = "0" * self.difficulty
-
         while not calculated_hash.startswith(num_of_zeros):
-
             block.nonce += 1
-
             calculated_hash = block.hash_block()
-
-        print("Wining Hash", calculated_hash)
+        print("Winning Hash", calculated_hash)
         return block
 
     def add_block(self, candidate_block):
@@ -114,28 +99,23 @@ class PyChain:
 
     def is_valid(self):
         block_hash = self.chain[0].hash_block()
-
         for block in self.chain[1:]:
             if block_hash != block.prev_hash:
                 print("Blockchain is invalid!")
                 return False
-
             block_hash = block.hash_block()
-
         print("Blockchain is Valid")
         return True
+
 
 ################################################################################
 # Streamlit Code
 
 # Adds the cache decorator for Streamlit
-
-
 @st.cache(allow_output_mutation=True)
 def setup():
     print("Initializing Chain")
     return PyChain([Block("Genesis", 0)])
-
 
 st.markdown("# PyChain")
 st.markdown("## Store a Transaction Record in the PyChain")
@@ -154,23 +134,21 @@ pychain = setup()
 # 2. Add an input area where you can get a value for `sender` from the user.
 # 3. Add an input area where you can get a value for `receiver` from the user.
 # 4. Add an input area where you can get a value for `amount` from the user.
-# 5. As part of the Add Block button functionality, update `new_block` so that `Block` consists of an attribute named `record`, which is set equal to a `Record` that contains the `sender`, `receiver`, and `amount` values. The updated `Block`should also include the attributes for `creator_id` and `prev_hash`.
-
-# @TODO:
-# Delete the `input_data` variable from the Streamlit interface.
-input_data = st.text_input("Block Data")
+# 5. As part of the Add Block button functionality, update `new_block` so that `Block` consists of an attribute named
+# `record`, which is set equal to a `Record` that contains the `sender`, `receiver`, and `amount` values.
+# The updated `Block`should also include the attributes for `creator_id` and `prev_hash`.
 
 # @TODO:
 # Add an input area where you can get a value for `sender` from the user.
-# YOUR CODE HERE
+sender = st.text_input("Sender")
 
 # @TODO:
 # Add an input area where you can get a value for `receiver` from the user.
-# YOUR CODE HERE
+receiver = st.text_input("Receiver")
 
 # @TODO:
 # Add an input area where you can get a value for `amount` from the user.
-# YOUR CODE HERE
+amount = st.text_input("Amount")
 
 if st.button("Add Block"):
     prev_block = pychain.chain[-1]
@@ -181,9 +159,9 @@ if st.button("Add Block"):
     # which is set equal to a `Record` that contains the `sender`, `receiver`,
     # and `amount` values
     new_block = Block(
-        data=input_data,
         creator_id=42,
-        prev_hash=prev_block_hash
+        prev_hash=prev_block_hash,
+        record=Record(sender, receiver, amount)
     )
 
     pychain.add_block(new_block)
@@ -194,7 +172,7 @@ if st.button("Add Block"):
 
 st.markdown("## The PyChain Ledger")
 
-pychain_df = pd.DataFrame(pychain.chain)
+pychain_df = pd.DataFrame(pychain.chain).astype(str)
 st.write(pychain_df)
 
 difficulty = st.sidebar.slider("Block Difficulty", 1, 5, 2)
